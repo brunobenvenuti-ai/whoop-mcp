@@ -21,15 +21,15 @@ export const recoveryRecordSchema = z
   .object({
     ...common,
     cycle_id: z.number().int(),
-    sleep_id: z.string().min(1),
+    sleep_id: z.string().min(1).nullable(),
     score: z
       .object({
         user_calibrating: z.boolean(),
         recovery_score: percentage,
         resting_heart_rate: nonnegative,
         hrv_rmssd_milli: nonnegative,
-        spo2_percentage: percentage.optional(),
-        skin_temp_celsius: z.number().finite().optional(),
+        spo2_percentage: percentage.nullish(),
+        skin_temp_celsius: z.number().finite().nullish(),
       })
       .nullish(),
   })
@@ -59,10 +59,10 @@ export const sleepRecordSchema = z
           need_from_recent_strain_milli: z.number().finite(),
           need_from_recent_nap_milli: z.number().finite(),
         }),
-        respiratory_rate: nonnegative.optional(),
-        sleep_performance_percentage: percentage.optional(),
-        sleep_efficiency_percentage: percentage.optional(),
-        sleep_consistency_percentage: percentage.optional(),
+        respiratory_rate: nonnegative.nullish(),
+        sleep_performance_percentage: percentage.nullish(),
+        sleep_efficiency_percentage: percentage.nullish(),
+        sleep_consistency_percentage: percentage.nullish(),
       })
       .nullish(),
   })
