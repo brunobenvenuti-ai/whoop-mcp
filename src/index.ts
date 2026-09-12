@@ -216,6 +216,9 @@ export async function main(): Promise<void> {
       logger.info("oauth connector mounted", { publicUrl });
     }
 
+    // Stateless /mcp: a fresh MCP server per request, so several clients
+    // (claude.ai sessions, dashboards) can use the same process concurrently.
+    const statelessMcp = process.env.MCP_STATELESS !== "0";
     const httpResult = await createHttpServer({
       authToken,
       port,
@@ -224,8 +227,13 @@ export async function main(): Promise<void> {
       trustProxy,
       healthCheck,
       oauthHandler,
+      ...(statelessMcp && {
+        serverFactory: () => createWhoopServer(client, { disableResources, privacyMode }).server,
+      }),
     });
-    await server.connect(httpResult.transport);
+    if (!statelessMcp) {
+      await server.connect(httpResult.transport);
+    }
     httpResults.push(httpResult);
 
     logger.info("http transport listening", {
