@@ -2,6 +2,8 @@ import { z } from "zod";
 
 const nonnegative = z.number().finite().nonnegative();
 const percentage = nonnegative.max(100);
+// WHOOP sends null for metrics it could not measure; treat null like a missing field.
+const nullToUndef = <T,>(value: T | null | undefined): T | undefined => value ?? undefined;
 export const timestampSchema = z.string().datetime({ offset: true });
 export const offsetSchema = z.string().regex(/^[+-](?:0\d|1[0-4]):[0-5]\d$/);
 const common = {
@@ -28,8 +30,8 @@ export const recoveryRecordSchema = z
         recovery_score: percentage,
         resting_heart_rate: nonnegative,
         hrv_rmssd_milli: nonnegative,
-        spo2_percentage: percentage.nullish(),
-        skin_temp_celsius: z.number().finite().nullish(),
+        spo2_percentage: percentage.nullish().transform(nullToUndef),
+        skin_temp_celsius: z.number().finite().nullish().transform(nullToUndef),
       })
       .nullish(),
   })
@@ -59,10 +61,10 @@ export const sleepRecordSchema = z
           need_from_recent_strain_milli: z.number().finite(),
           need_from_recent_nap_milli: z.number().finite(),
         }),
-        respiratory_rate: nonnegative.nullish(),
-        sleep_performance_percentage: percentage.nullish(),
-        sleep_efficiency_percentage: percentage.nullish(),
-        sleep_consistency_percentage: percentage.nullish(),
+        respiratory_rate: nonnegative.nullish().transform(nullToUndef),
+        sleep_performance_percentage: percentage.nullish().transform(nullToUndef),
+        sleep_efficiency_percentage: percentage.nullish().transform(nullToUndef),
+        sleep_consistency_percentage: percentage.nullish().transform(nullToUndef),
       })
       .nullish(),
   })
