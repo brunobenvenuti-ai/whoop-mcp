@@ -15,7 +15,7 @@ export type ScoreState = "SCORED" | "PENDING_SCORE" | "UNSCORABLE";
 /** Generic paginated response shape used by all collection endpoints */
 export interface PaginatedResponse<T> {
   records: T[];
-  next_token?: string;
+  next_token?: string | null;
 }
 
 // ---------------------------------------------------------------------------
