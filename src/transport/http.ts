@@ -59,6 +59,19 @@ export interface HttpServerOptions {
    * plug in OAuth JWT expiry checks.
    */
   validateBearerToken?: (token: string) => boolean;
+  /**
+   * Optional factory that returns a fresh MCP server per request. When set,
+   * /mcp runs in stateless mode: every POST gets its own server + transport,
+   * so many independent clients (e.g. several claude.ai sessions) can talk
+   * to the same process. GET (SSE) is not supported in this mode.
+   */
+  serverFactory?: () => McpServerLike;
+}
+
+/** Minimal shape of an MCP server usable by the stateless /mcp mode. */
+export interface McpServerLike {
+  connect: (transport: StreamableHTTPServerTransport) => Promise<void>;
+  close: () => Promise<void>;
 }
 
 export interface HttpServerResult {
@@ -196,6 +209,7 @@ export async function createHttpServer(options: HttpServerOptions): Promise<Http
     mcpRateLimit = { windowMs: 60_000, max: 100 },
     sseReauthIntervalMs = 5 * 60 * 1000,
     validateBearerToken,
+    serverFactory,
   } = options;
 
   if (!authToken) {
@@ -348,6 +362,37 @@ export async function createHttpServer(options: HttpServerOptions): Promise<Http
           // res.on("close") handles activeConnections decrement
           return;
         }
+      }
+
+      // Stateless mode: fresh server + transport per request
+      if (serverFactory) {
+        if (req.method === "DELETE") {
+          sendJson(res, 200, { ok: true });
+          return;
+        }
+        if (req.method !== "POST") {
+          res.setHeader("Allow", "POST, DELETE");
+          sendJson(res, 405, { error: "Method Not Allowed" });
+          return;
+        }
+        const perRequestServer = serverFactory();
+        const perRequestTransport = new StreamableHTTPServerTransport({
+          sessionIdGenerator: undefined,
+        });
+        res.on("close", () => {
+          void perRequestTransport.close().catch(() => undefined);
+          void perRequestServer.close().catch(() => undefined);
+        });
+        try {
+          await perRequestServer.connect(perRequestTransport);
+          await perRequestTransport.handleRequest(req, res, parsedBody);
+        } catch (error: unknown) {
+          if (!res.headersSent) {
+            const message = error instanceof Error ? error.message : "Internal server error";
+            sendJson(res, 500, { error: "Internal Server Error", message });
+          }
+        }
+        return;
       }
 
       // Delegate to SDK transport
