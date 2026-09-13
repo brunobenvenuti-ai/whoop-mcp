@@ -47,8 +47,8 @@ export interface RecoveryScore {
   recovery_score: number;
   resting_heart_rate: number;
   hrv_rmssd_milli: number;
-  spo2_percentage?: number;
-  skin_temp_celsius?: number;
+  spo2_percentage?: number | null;
+  skin_temp_celsius?: number | null;
 }
 
 /** A single recovery record */
@@ -93,10 +93,10 @@ export interface SleepNeeded {
 export interface SleepScore {
   stage_summary: SleepStageSummary;
   sleep_needed: SleepNeeded;
-  respiratory_rate?: number;
-  sleep_performance_percentage?: number;
-  sleep_consistency_percentage?: number;
-  sleep_efficiency_percentage?: number;
+  respiratory_rate?: number | null;
+  sleep_performance_percentage?: number | null;
+  sleep_consistency_percentage?: number | null;
+  sleep_efficiency_percentage?: number | null;
 }
 
 /** A single sleep record */
